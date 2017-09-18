@@ -58,30 +58,53 @@ Now let's look at the JSON document. The structure of the top level document is
 as follows:
 
 {
+
 "name": "English Premier League 2015/16",
+
 "rounds": [<Array of ROUNDS>]
+
 }
+
 The structure of the JSON documents corresponding to ROUNDS are:
+
 {
+
 "name": <Name of the Round>,
 
 "matches": [<Array of MATCHES>]
+
 }
+
 An example MATCHES JSON document is given here:
+
 {
+
 "date": "2015-08-08",
+
 "team1": {
+
 "key": "manutd",
+
 "name": "Manchester United",
+
 "code": "MUN"
+
 },
+
 "team2": {
+
 "key": "tottenham",
+
 "name": "Tottenham Hotspur",
+
 "code": "TOT"
+
 },
+
 "score1": 1,
+
 "score2": 0
+
 },
 
 This format should be self explanatory barring one clarification: Team 1 refers to
@@ -111,17 +134,25 @@ should be useful. [5 points]
 table. The document should look like this:
 
 {
+
 results: [<Array of TEAM JSON>]
+
 }
 
 An example TEAM JSON to show the format (the values are random):
 
 {
+
 name: Manchester United
+
 points: 59
+
 goals_scored : 90
+
 goals_conceded: 34
+
 goal_difference: 56
+
 }
 
 The order of the TEAMS in the results array should be from most points to fewer
@@ -150,30 +181,53 @@ mongoimport --db aueb --collection mtg --file mtg.json
 Here’s what a typical entry looks like:
 
 {
+
 "_id" : ObjectId("588c72004c805c6bcf9fc356"),
+
 "layout" : "normal",
+
 "name" : "Air Elemental",
+
 "manaCost" : "{3}{U}{U}",
+
 "cmc" : NumberInt(5),
+
 "colors" : [
+
 "Blue"
+
 ],
+
 "type" : "Creature — Elemental",
+
 "types" : [
+
 "Creature"
+
 ],
 
 5
+
 "subtypes" : [
+
 "Elemental"
+
 ],
+
 "text" : "Flying",
+
 "power" : "4",
+
 "toughness" : "4",
+
 "imageName" : "air elemental",
+
 "colorIdentity" : [
+
 "U"
+
 ]
+
 }
 
 No doubt the precise semantics of some of these entries will escape most of you
@@ -188,10 +242,15 @@ Elemental above. [2 points]
 documents in the following format, one for each different value of power:
 
 {
+
 “power” : “4”,
+
 “elementals”: [{"name" : "Air Elemental",
+
 "colors" : ["Blue"]
+
 }, … ]
+
 }
 
 To further clarify, in the elementals field, we’re expecting a JSON array whose
@@ -226,23 +285,41 @@ meteorites.json --jsonArray
 Here is an example document:
 
 {
+
 "_id" : ObjectId("588c4dcd4c805c6bcf9f6d73"),
+
 "fall" : "Fell",
+
 "geolocation" : {
+
 "type" : "Point",
+
 "coordinates" : [
+
 6.08333,
+
 50.775
+
 ]
+
 },
+
 "id" : "1",
+
 "mass" : "21",
+
 "name" : "Aachen",
+
 "nametype" : "Valid",
+
 "recclass" : "L5",
+
 "reclat" : "50.775000",
+
 "reclong" : "6.083330",
+
 "year" : "1880-01-01T00:00:00.000"
+
 }
 
 As we can see, the geolocation field has coordinates (longitude, latitude) for the
@@ -254,9 +331,13 @@ to use some JavaScript instead. Execute the following command on your Mongo
 shell before attempting the following questions.
 
 db.meteorites.find({}).forEach(function(theCollection) {
+
 theCollection.mass =
+
 parseInt(theCollection.mass);
+
 db.meteorites.save(theCollection);
+
 });
 
 1) Let’s start off by building a geospatial index. This is a necessary step in
