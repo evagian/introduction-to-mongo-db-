@@ -97,17 +97,17 @@ league” it is not appropriate to return an ordered array of documents and
 assume we will pick out the document at the top. A question asking for one
 answer must get back one document.
 
-## 1) What was the score when Leicester City played Norwich at home? [2 points]
+1) What was the score when Leicester City played Norwich at home? [2 points]
 
-## 2) On what dates did Manchester City and Liverpool play against each other? [2
+2) On what dates did Manchester City and Liverpool play against each other? [2
 point]
 
-## 3) Which team(s) won the most away games? HINT 1: Your query needs to work
+3) Which team(s) won the most away games? HINT 1: Your query needs to work
 correctly in case more than 1 team have won the most away games. HINT 2:
 Lookup the $cond aggregation operator in the online documentation – this
 should be useful. [5 points]
 
-## 4) Transform this document into a single document containing the final league
+4) Transform this document into a single document containing the final league
 table. The document should look like this:
 
 {
@@ -130,7 +130,7 @@ described earlier. HINT: Yes, this part is hard. The only extra thing you need f
 the notes though, is $cond that you saw in the previous question. This is perfectly
 doable in one aggregate query. [10 points]
 
-## 5) Repeat Question 4 but this time, calculate the league table as it stood at the
+5) Repeat Question 4 but this time, calculate the league table as it stood at the
 end of 2015. [1 point]
 
 # B. Magic: The Gathering [10 points]
@@ -180,11 +180,11 @@ No doubt the precise semantics of some of these entries will escape most of you
 unless you are familiar with the game. Nonetheless we can still play around with
 these data and have some fun.
 
-## 1) Write a query to bring up just the names, types and subtypes of any cards
+1) Write a query to bring up just the names, types and subtypes of any cards
 that have the Elemental subtype but are not Creatures like the Air
 Elemental above. [2 points]
 
-## 2) Aggregate all the type: “Creature – Elemental” cards by power and create
+2) Aggregate all the type: “Creature – Elemental” cards by power and create
 documents in the following format, one for each different value of power:
 
 {
@@ -199,13 +199,13 @@ documents are just the names and color arrays for the elementals that have a
 particular power rating indicated by the power field. Order these by the
 power field. [3 points]
 
-## 3) Write the command to create an index on your collection first by color
+3) Write the command to create an index on your collection first by color
 descending then by name. [1 points]
 
-## 4) Write a query to return the first three cards (sorted by name) with either
+4) Write a query to return the first three cards (sorted by name) with either
 red or green in their color array, whose names begin with “Z”. [2 points]
 
-## 5) Write a query that first filters out cards that don’t have both colors and
+5) Write a query that first filters out cards that don’t have both colors and
 subtypes and then computes the number of cards for each possible color
 and subtype combination. Some cards will be counted more than once as
 they can have more than one color or more than one subtype in their
@@ -259,24 +259,24 @@ parseInt(theCollection.mass);
 db.meteorites.save(theCollection);
 });
 
-## 1) Let’s start off by building a geospatial index. This is a necessary step in
+1) Let’s start off by building a geospatial index. This is a necessary step in
 MongoDB before we can run some of the queries we need. To learn how
 to do this, study the page on 2dsphere Indexes and then write down the
 command needed to create such an index on the geolocation field [2
 points]
 
-## 2) It turns out that if you have such an index on your collection, you have
+2) It turns out that if you have such an index on your collection, you have
 access to another type of stage in the aggregate() pipeline that we have
 not seen, the $geonear stage. Read the online documentation for this
 stage, and then construct a query that will find the 5 meteorite landings
 that were nearest to Athens, Greece [4 points]
 
-## 3) Write a query that computes the average mass, the number of meteorites,
+3) Write a query that computes the average mass, the number of meteorites,
 the most recent and the oldest meteorite landing for each value of
 recclass, sorted by recclass, but for only those values of recclass that
 appear in at least 5 meteorites in the collection [2 points]
 
-## 4) Write a statement that will update all documents in the collection so that
+4) Write a statement that will update all documents in the collection so that
 if their mass exceeds 10000, they will have acquire an extra field called
 “big_one” with the value true [2 points]
 
