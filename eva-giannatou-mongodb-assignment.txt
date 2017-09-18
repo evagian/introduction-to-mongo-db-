@@ -1,0 +1,302 @@
+//A
+// rounds
+db.football.aggregate([{$unwind: "$rounds"},
+        {$project: {"_id":0, "rounds":1}},
+        {$out: "rounds"}])
+//matches
+db.rounds.aggregate([{$unwind: "$rounds.matches"},
+        {$project: {"_id":0, "rounds.matches":1, "rounds.name":1}},
+        {$out: "matches"}])
+        
+//A1
+db.matches.findOne({ 
+                    $and : [
+                    { "rounds.matches.team1.name": "Leicester City" } , 
+                    { "rounds.matches.team2.name": "Norwich" } 
+                            ]
+                    } , 
+                    { "rounds.matches.score1":1, "rounds.matches.score2":1}
+)
+                    
+//A2
+  db.matches.distinct("rounds.matches.date",
+                {$or : [
+                    {$and : [
+                    { "rounds.matches.team1.name": "Manchester City" } , 
+                    { "rounds.matches.team2.name": "Liverpool" } 
+                            ]
+                    } ,
+                    {$and : [
+                    { "rounds.matches.team2.name": "Manchester City" } , 
+                    { "rounds.matches.team1.name": "Liverpool" } 
+                            ]
+                    }
+                    ] }
+                                        
+)        
+                    
+//A3
+db.matches.aggregate(
+   [
+      {
+         $project:
+           {
+            "rounds.matches.team2.name": 1,
+             won:
+               {
+                 $cond: { if: { $gt: [ "$rounds.matches.score2", "$rounds.matches.score1" ] }, then: 1, else: 0 }
+               }
+           }
+      } , 
+      {$group :{_id:"$rounds.matches.team2.name", wins : {$sum:"$won"}} } 
+      , {$group :{"_id" : "$wins", 
+                "winners" :{$push : {name:"$_id", won: "$wins"  }}    
+                }           
+        } , 
+        {$sort:{"_id":-1}}, 
+        { $limit : 1 }
+	])
+                                                                    
+//A4
+//attempt number1
+        db.matches.aggregate(
+   [
+    {
+         $project:
+           {
+               "rounds.name":1,
+             "rounds.matches.team2.name": 1,
+               "rounds.matches.score2":1,
+               "rounds.matches.score1":1,
+        "goals_scored2":"$rounds.matches.score2", "goals_conceded2":"$rounds.matches.score1",
+                       "goals_scored1":"$rounds.matches.score1", "goals_conceded1":"$rounds.matches.score2",
+team:"$rounds.matches.team1.name", team2:"$rounds.matches.team2.name",
+
+       "points2":
+               {
+                 $cond:              
+                 { 
+                "if": { "$gt": [ "$rounds.matches.score2", "$rounds.matches.score1" ]  }, 
+                "then": 3,
+                "else": {
+                    "$cond": {
+                        "if": { "$eq": [ "$rounds.matches.score2", "$rounds.matches.score1" ] }, 
+                        "then": 1, 
+                        "else": 0
+                    }
+
+               }
+           }
+      } ,
+          "points":
+               {
+                 $cond:              
+                 { 
+                "if": { "$gt": [ "$rounds.matches.score1", "$rounds.matches.score2" ]  }, 
+                "then": 3,
+                "else": {
+                    "$cond": {
+                        "if": { "$eq": [ "$rounds.matches.score1", "$rounds.matches.score2" ] }, 
+                        "then": 1, 
+                        "else": 0
+                    }
+               }
+           }
+      } 
+  }} , { "$group": {
+        _id:"$team",  goals_scored: {$sum:"$goals_scored1"}, goals_conceded : {$sum:"$goals_conceded1"}, 
+        points : {$sum:"$points"}
+        }}, 
+        { "$project": {  _id:1, points : 1, goals_scored:1,  goals_conceded:1,
+            goals_difference : { $subtract : [ "$goals_scored", "$goals_conceded" ] }
+        }}, 
+        {$sort: {"points":-1, "goals_difference":-1}}        
+      ])
+        
+//attempt number2
+//calculate all scores and points for games played at team's home stadium
+//create a new collection with the results      
+ db.matches.aggregate(
+   [
+    {
+         $project:
+           {
+               "goals_scored1":"$rounds.matches.score1", 
+               "goals_conceded1":"$rounds.matches.score2",
+               team1:"$rounds.matches.team1.name", team2:"$rounds.matches.team2.name",
+
+       "points2":
+               {
+                 $cond:              
+                 { 
+                "if": { "$gt": [ "$rounds.matches.score2", "$rounds.matches.score1" ]  }, 
+                "then": 3,
+                "else": {
+                    "$cond": {
+                        "if": { "$eq": [ "$rounds.matches.score2", "$rounds.matches.score1" ] }, 
+                        "then": 1, 
+                        "else": 0
+                    }
+                 
+               }
+           }
+      } ,
+          "points1":
+               {
+                 $cond:              
+                 { 
+                "if": { "$gt": [ "$rounds.matches.score1", "$rounds.matches.score2" ]  }, 
+                "then": 3,
+                "else": {
+                    "$cond": {
+                        "if": { "$eq": [ "$rounds.matches.score1", "$rounds.matches.score2" ] }, 
+                        "then": 1, 
+                        "else": 0
+                    }
+                 
+               }
+           }
+      } 
+  }}
+   ])    
+//calculate all scores and points for games played outside team's home stadium
+//join in and out game results for each team and compute total points and score difference  
+  db.matches.aggregate(
+   [
+    {
+         $project:
+           {
+               "goals_scored1":"$rounds.matches.score1", 
+               "goals_conceded1":"$rounds.matches.score2",
+               team1:"$rounds.matches.team1.name", team2:"$rounds.matches.team2.name",
+
+       "points2":
+               {
+                 $cond:              
+                 { 
+                "if": { "$gt": [ "$rounds.matches.score2", "$rounds.matches.score1" ]  }, 
+                "then": 3,
+                "else": {
+                    "$cond": {
+                        "if": { "$eq": [ "$rounds.matches.score2", "$rounds.matches.score1" ] }, 
+                        "then": 1, 
+                        "else": 0
+                    }
+                 
+               }
+           }
+      } ,
+          "points1":
+               {
+                 $cond:              
+                 { 
+                "if": { "$gt": [ "$rounds.matches.score1", "$rounds.matches.score2" ]  }, 
+                "then": 3,
+                "else": {
+                    "$cond": {
+                        "if": { "$eq": [ "$rounds.matches.score1", "$rounds.matches.score2" ] }, 
+                        "then": 1, 
+                        "else": 0
+                    }
+                 
+               }
+           }
+      } 
+  }}, 
+ {
+      $lookup:
+         {
+            from: "in",
+            localField: "team1",
+            foreignField: "team2",
+            as: "team"
+        }
+   }, {$unwind:"$team"}
+   ,
+    {$project:  { team:"$team1", points : { $add : [ "$points1", "$team.points2" ] },
+   goalsCondenced : { $add : [ "$goals_conceded1", "$team.goals_scored1" ] },
+     goalsScored : { $add : [ "$goals_scored1", "$goals_conceded1" ] }
+
+  }} ,
+   { "$group": {"_id" :"$team",
+   goals_scored: {$sum:"$goalsScored"}, goals_conceded : {$sum:"$goalsCondenced"}, 
+        points : {$sum:"$points"}
+        }},
+         
+        { "$project": {  _id:1, points : 1, goals_scored:1,  goals_conceded:1,
+            goals_difference : { $subtract : [ "$goals_scored", "$goals_conceded" ] }
+        }},
+
+        {$sort: {"points":-1}}
+   
+  
+   ]) 
+
+              
+  
+//B                                                                   
+//B1
+
+db.mtg.find({"subtypes":"Elemental", "types" : {$nin :  ["Creature"]}} , 
+            {"name":true, "_id" : false, "types" : true, "subtypes":true} )
+
+//B2
+db.mtg.aggregate([{$group : { "_id" : { power: "$power",  name : "$name", colors : "$colors"}
+                }},
+  		{$group : { "_id" : "$_id.power",  
+  			"elementals" : {$push : {name : "$_id.name",colors : "$_id.colors"   } 
+  		}}}, 
+                 {$sort: {"_id":-1}}
+                ])
+
+//B3
+db.mtg.ensureIndex({"colors":-1, "name":1})
+
+//B4
+//card names only
+db.mtg.find({colors : {$in :  ["Red", "Green"]}, name : { $regex : "^Z"}}, {name :1, _id:0 }).sort({name : 1}).limit(3)
+//or
+//complete card info
+db.mtg.find({colors : {$in :  ["Red", "Green"]}, name : { $regex : "^Z"}}).sort({name : 1}).limit(3)
+
+//B5
+
+        db.mtg.aggregate([  
+         {$match:{ "colors": {$exists:true}, "subtypes": {$exists:true} }},
+       {$unwind: "$colors"}, {$unwind: "$subtypes"},
+       {$group : {"_id" : {$concat: ["$colors","-","$subtypes"]},  
+  						         num_cards: {$sum : 1}
+  						         }}])
+
+
+//C
+//mass to numeric
+db.meteorites.find({}).forEach(function(theCollection) {
+theCollection.mass =
+parseInt(theCollection.mass);
+db.meteorites.save(theCollection);
+});    
+//C1 
+db.meteorites.createIndex( { geolocation : "2dsphere" } )      
+//C2 
+db.meteorites.aggregate([
+   {
+     $geoNear: {
+        near: { type: "Point", coordinates: [ 37.9838096 , 23.727538800000048 ] },
+        distanceField: "dist.calculated",
+        
+        includeLocs: "dist.location",
+        num: 5,
+        spherical: true
+     }
+   }
+])
+   
+//C3
+db.meteorites.aggregate([  
+{$group: {"_id" : { recclass: "$recclass" }, num:{$sum:1},
+avgMass:{$avg:"$mass"}, oldest : { $min: "$year" },  newest : { $max: "$year" }  }}, {
+$match: {num:{$gt:5}}}, {$sort: {"_id.recclass":1}}])
+
+//C4
+db.meteorites.update({"mass" :{ $gt : 10000 } },{$set : {"big_one":true}})
