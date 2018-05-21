@@ -278,7 +278,7 @@ the notes though, is $cond that you saw in the previous question. This is perfec
 doable in one aggregate query. [10 points]
 
 ```js
-//attempt number1
+// 1st way
 
         db.matches.aggregate(
 
@@ -384,12 +384,10 @@ team:"$rounds.matches.team1.name", team2:"$rounds.matches.team2.name",
         
 
       ])
-
+```
         
-
-
-//attempt number2
-
+```js
+// 2nd way
 //calculate all scores and points for games played at team's home stadium
 
 //create a new collection with the results      
