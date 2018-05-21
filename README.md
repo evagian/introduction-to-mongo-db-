@@ -128,7 +128,7 @@ db.football.aggregate([{$unwind: "$rounds"},
         {$project: {"_id":0, "rounds":1}},
 
         {$out: "rounds"}])
-'''
+```
 
 2) On what dates did Manchester City and Liverpool play against each other? [2
 point]
