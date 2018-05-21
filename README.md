@@ -122,6 +122,14 @@ answer must get back one document.
 
 1) What was the score when Leicester City played Norwich at home? [2 points]
 
+```js
+db.football.aggregate([{$unwind: "$rounds"},
+
+        {$project: {"_id":0, "rounds":1}},
+
+        {$out: "rounds"}])
+'''
+
 2) On what dates did Manchester City and Liverpool play against each other? [2
 point]
 
