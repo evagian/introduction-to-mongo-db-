@@ -22,9 +22,11 @@ In this section, we are going to analyze match data from the English Premier
 League Football Season 2015/2016. To do this, import the JSON file football.json
 into a collection called football using the following command:
 
+```js
 mongoimport --db aueb --collection football --file
 
 football.json
+```
 
 This JSON file is actually only contains a (quite large) single JSON document and
 if you import it into a collection you will see that the collection will contain just
@@ -637,7 +639,9 @@ some queries on it to learn more about this crazy and wondrous universe.
 First, let’s import our collection of cards using the file mtg.json (this is a modified
 version of a file available on mtgjson.com:
 
+```js
 mongoimport --db aueb --collection mtg --file mtg.json
+```
 
 Here’s what a typical entry looks like:
 
@@ -795,9 +799,11 @@ MongoDB. Concretely, we will learn just a few things about working with
 geospatial data with MongoDB. Our dataset consists of a series of meteorite
 landings on Earth. Let’s load this up first.
 
+```js
 mongoimport --db aueb --collection meteorites --file
 
 meteorites.json --jsonArray
+```
 
 Here is an example document:
 
