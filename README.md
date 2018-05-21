@@ -57,6 +57,7 @@ for resolving ties that still remain but we won't need them here.
 Now let's look at the JSON document. The structure of the top level document is
 as follows:
 
+```js
 {
 
 "name": "English Premier League 2015/16",
@@ -64,9 +65,10 @@ as follows:
 "rounds": [<Array of ROUNDS>]
 
 }
+```
 
 The structure of the JSON documents corresponding to ROUNDS are:
-
+```js
 {
 
 "name": <Name of the Round>,
@@ -106,6 +108,7 @@ An example MATCHES JSON document is given here:
 "score2": 0
 
 },
+```
 
 This format should be self explanatory barring one clarification: Team 1 refers to
 the home team and Team 2 refers to the away team. So the example document
@@ -242,6 +245,7 @@ db.matches.aggregate(
 4) Transform this document into a single document containing the final league
 table. The document should look like this:
 
+```js
 {
 
 results: [<Array of TEAM JSON>]
@@ -263,6 +267,7 @@ goals_conceded: 34
 goal_difference: 56
 
 }
+```
 
 The order of the TEAMS in the results array should be from most points to fewer
 points and should respect the tie breaking condition on goal_difference as
@@ -636,6 +641,7 @@ mongoimport --db aueb --collection mtg --file mtg.json
 
 Here’s what a typical entry looks like:
 
+```js
 {
 
 "_id" : ObjectId("588c72004c805c6bcf9fc356"),
@@ -685,6 +691,7 @@ Here’s what a typical entry looks like:
 ]
 
 }
+```
 
 No doubt the precise semantics of some of these entries will escape most of you
 unless you are familiar with the game. Nonetheless we can still play around with
@@ -703,6 +710,7 @@ db.mtg.find({"subtypes":"Elemental", "types" : {$nin :  ["Creature"]}} ,
 2) Aggregate all the type: “Creature – Elemental” cards by power and create
 documents in the following format, one for each different value of power:
 
+```js
 {
 
 “power” : “4”,
@@ -714,6 +722,7 @@ documents in the following format, one for each different value of power:
 }, … ]
 
 }
+```
 
 To further clarify, in the elementals field, we’re expecting a JSON array whose
 documents are just the names and color arrays for the elementals that have a
@@ -792,6 +801,7 @@ meteorites.json --jsonArray
 
 Here is an example document:
 
+```js
 {
 
 "_id" : ObjectId("588c4dcd4c805c6bcf9f6d73"),
@@ -829,6 +839,7 @@ Here is an example document:
 "year" : "1880-01-01T00:00:00.000"
 
 }
+```
 
 As we can see, the geolocation field has coordinates (longitude, latitude) for the
 point of impact. MongoDB has native capabilities of handling geospatial queries,
@@ -837,16 +848,6 @@ data however we discover that the mass field is written as a string instead of a
 number. There is no way to change this within an update() query so we will have
 to use some JavaScript instead. Execute the following command on your Mongo
 shell before attempting the following questions.
-
-db.meteorites.find({}).forEach(function(theCollection) {
-
-theCollection.mass =
-
-parseInt(theCollection.mass);
-
-db.meteorites.save(theCollection);
-
-});
 
 ```js 
 //mass to numeric
