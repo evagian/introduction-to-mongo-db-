@@ -120,23 +120,124 @@ league” it is not appropriate to return an ordered array of documents and
 assume we will pick out the document at the top. A question asking for one
 answer must get back one document.
 
-1) What was the score when Leicester City played Norwich at home? [2 points]
-
 ```js
 db.football.aggregate([{$unwind: "$rounds"},
 
         {$project: {"_id":0, "rounds":1}},
 
         {$out: "rounds"}])
+        
+//matches        
+db.rounds.aggregate([{$unwind: "$rounds.matches"},
+
+        {$project: {"_id":0, "rounds.matches":1, "rounds.name":1}},
+
+        {$out: "matches"}])
+```
+
+1) What was the score when Leicester City played Norwich at home? [2 points]
+
+```js
+db.matches.findOne({ 
+
+                    $and : [
+
+                    { "rounds.matches.team1.name": "Leicester City" } , 
+
+                    { "rounds.matches.team2.name": "Norwich" } 
+
+                            ]
+
+                    } , 
+
+                    { "rounds.matches.score1":1, "rounds.matches.score2":1}
+
+)
 ```
 
 2) On what dates did Manchester City and Liverpool play against each other? [2
 point]
 
+```js
+  db.matches.distinct("rounds.matches.date",
+
+                {$or : [
+
+                    {$and : [
+
+                    { "rounds.matches.team1.name": "Manchester City" } , 
+
+                    { "rounds.matches.team2.name": "Liverpool" } 
+
+                            ]
+
+                    } ,
+
+                    {$and : [
+
+                    { "rounds.matches.team2.name": "Manchester City" } , 
+
+                    { "rounds.matches.team1.name": "Liverpool" } 
+
+                            ]
+
+                    }
+
+                    ] }
+
+                                        
+
+)        
+
+```
+
 3) Which team(s) won the most away games? HINT 1: Your query needs to work
 correctly in case more than 1 team have won the most away games. HINT 2:
 Lookup the $cond aggregation operator in the online documentation – this
 should be useful. [5 points]
+
+```js
+db.matches.aggregate(
+
+   [
+
+      {
+
+         $project:
+
+           {
+
+            "rounds.matches.team2.name": 1,
+
+             won:
+
+               {
+
+                 $cond: { if: { $gt: [ "$rounds.matches.score2", "$rounds.matches.score1" ] }, then: 1, else: 0 }
+
+               }
+
+           }
+
+      } , 
+
+      {$group :{_id:"$rounds.matches.team2.name", wins : {$sum:"$won"}} } 
+
+      , {$group :{"_id" : "$wins", 
+
+                "winners" :{$push : {name:"$_id", won: "$wins"  }}    
+
+                }           
+
+        } , 
+
+        {$sort:{"_id":-1}}, 
+
+        { $limit : 1 }
+
+	])
+
+```
 
 4) Transform this document into a single document containing the final league
 table. The document should look like this:
@@ -169,8 +270,355 @@ described earlier. HINT: Yes, this part is hard. The only extra thing you need f
 the notes though, is $cond that you saw in the previous question. This is perfectly
 doable in one aggregate query. [10 points]
 
-5) Repeat Question 4 but this time, calculate the league table as it stood at the
-end of 2015. [1 point]
+```js
+//attempt number1
+
+        db.matches.aggregate(
+
+   [
+
+    {
+
+         $project:
+
+           {
+
+               "rounds.name":1,
+
+             "rounds.matches.team2.name": 1,
+
+               "rounds.matches.score2":1,
+
+               "rounds.matches.score1":1,
+
+        "goals_scored2":"$rounds.matches.score2", "goals_conceded2":"$rounds.matches.score1",
+
+                       "goals_scored1":"$rounds.matches.score1", "goals_conceded1":"$rounds.matches.score2",
+
+team:"$rounds.matches.team1.name", team2:"$rounds.matches.team2.name",
+
+
+       "points2":
+
+               {
+
+                 $cond:              
+
+                 { 
+
+                "if": { "$gt": [ "$rounds.matches.score2", "$rounds.matches.score1" ]  }, 
+
+                "then": 3,
+
+                "else": {
+
+                    "$cond": {
+
+                        "if": { "$eq": [ "$rounds.matches.score2", "$rounds.matches.score1" ] }, 
+
+                        "then": 1, 
+
+                        "else": 0
+
+                    }
+
+
+               }
+
+           }
+
+      } ,
+
+          "points":
+
+               {
+
+                 $cond:              
+
+                 { 
+
+                "if": { "$gt": [ "$rounds.matches.score1", "$rounds.matches.score2" ]  }, 
+
+                "then": 3,
+
+                "else": {
+
+                    "$cond": {
+
+                        "if": { "$eq": [ "$rounds.matches.score1", "$rounds.matches.score2" ] }, 
+
+                        "then": 1, 
+
+                        "else": 0
+
+                    }
+
+               }
+
+           }
+
+      } 
+
+  }} , { "$group": {
+
+        _id:"$team",  goals_scored: {$sum:"$goals_scored1"}, goals_conceded : {$sum:"$goals_conceded1"}, 
+
+        points : {$sum:"$points"}
+
+        }}, 
+
+        { "$project": {  _id:1, points : 1, goals_scored:1,  goals_conceded:1,
+
+            goals_difference : { $subtract : [ "$goals_scored", "$goals_conceded" ] }
+
+        }}, 
+
+        {$sort: {"points":-1, "goals_difference":-1}}
+        
+
+      ])
+
+        
+
+
+//attempt number2
+
+//calculate all scores and points for games played at team's home stadium
+
+//create a new collection with the results      
+
+ db.matches.aggregate(
+
+   [
+
+    {
+
+         $project:
+
+           {
+
+               "goals_scored1":"$rounds.matches.score1", 
+
+               "goals_conceded1":"$rounds.matches.score2",
+
+               team1:"$rounds.matches.team1.name", team2:"$rounds.matches.team2.name",
+
+
+
+       "points2":
+
+               {
+
+                 $cond:              
+
+                 { 
+
+                "if": { "$gt": [ "$rounds.matches.score2", "$rounds.matches.score1" ]  }, 
+
+                "then": 3,
+
+                "else": {
+
+                    "$cond": {
+
+                        "if": { "$eq": [ "$rounds.matches.score2", "$rounds.matches.score1" ] }, 
+
+                        "then": 1, 
+
+                        "else": 0
+
+                    }
+
+                 
+
+               }
+
+           }
+
+      } ,
+
+          "points1":
+
+               {
+
+                 $cond:              
+
+                 { 
+
+                "if": { "$gt": [ "$rounds.matches.score1", "$rounds.matches.score2" ]  }, 
+
+                "then": 3,
+
+                "else": {
+
+                    "$cond": {
+
+                        "if": { "$eq": [ "$rounds.matches.score1", "$rounds.matches.score2" ] }, 
+
+                        "then": 1, 
+
+                        "else": 0
+
+                    }
+
+                 
+
+               }
+
+           }
+
+      } 
+
+  }}
+
+   ])    
+
+//calculate all scores and points for games played outside team's home stadium
+
+//join in and out game results for each team and compute total points and score difference  
+
+  db.matches.aggregate(
+
+   [
+
+    {
+
+         $project:
+
+           {
+
+               "goals_scored1":"$rounds.matches.score1", 
+
+               "goals_conceded1":"$rounds.matches.score2",
+
+               team1:"$rounds.matches.team1.name", team2:"$rounds.matches.team2.name",
+
+
+
+       "points2":
+
+               {
+
+                 $cond:              
+
+                 { 
+
+                "if": { "$gt": [ "$rounds.matches.score2", "$rounds.matches.score1" ]  }, 
+
+                "then": 3,
+
+                "else": {
+
+                    "$cond": {
+
+                        "if": { "$eq": [ "$rounds.matches.score2", "$rounds.matches.score1" ] }, 
+
+                        "then": 1, 
+
+                        "else": 0
+
+                    }
+
+                 
+
+               }
+
+           }
+
+      } ,
+
+          "points1":
+
+               {
+
+                 $cond:              
+
+                 { 
+
+                "if": { "$gt": [ "$rounds.matches.score1", "$rounds.matches.score2" ]  }, 
+
+                "then": 3,
+
+                "else": {
+
+                    "$cond": {
+
+                        "if": { "$eq": [ "$rounds.matches.score1", "$rounds.matches.score2" ] }, 
+
+                        "then": 1, 
+
+                        "else": 0
+
+                    }
+
+                 
+
+               }
+
+           }
+
+      } 
+
+  }}, 
+
+ {
+
+      $lookup:
+
+         {
+
+            from: "in",
+
+            localField: "team1",
+
+            foreignField: "team2",
+
+            as: "team"
+
+        }
+
+   }, {$unwind:"$team"}
+
+   ,
+
+    {$project:  { team:"$team1", points : { $add : [ "$points1", "$team.points2" ] },
+
+   goalsCondenced : { $add : [ "$goals_conceded1", "$team.goals_scored1" ] },
+
+     goalsScored : { $add : [ "$goals_scored1", "$goals_conceded1" ] }
+
+
+
+  }} ,
+
+   { "$group": {"_id" :"$team",
+
+   goals_scored: {$sum:"$goalsScored"}, goals_conceded : {$sum:"$goalsCondenced"}, 
+
+        points : {$sum:"$points"}
+
+        }},
+
+         
+
+        { "$project": {  _id:1, points : 1, goals_scored:1,  goals_conceded:1,
+
+            goals_difference : { $subtract : [ "$goals_scored", "$goals_conceded" ] }
+
+        }},
+
+
+
+        {$sort: {"points":-1}}
+
+   
+
+  
+
+   ]) 
+
+
+```
 
 # B. Magic: The Gathering [10 points]
 
@@ -246,6 +694,12 @@ these data and have some fun.
 that have the Elemental subtype but are not Creatures like the Air
 Elemental above. [2 points]
 
+```js
+db.mtg.find({"subtypes":"Elemental", "types" : {$nin :  ["Creature"]}} , 
+
+            {"name":true, "_id" : false, "types" : true, "subtypes":true} )
+```
+
 2) Aggregate all the type: “Creature – Elemental” cards by power and create
 documents in the following format, one for each different value of power:
 
@@ -266,17 +720,63 @@ documents are just the names and color arrays for the elementals that have a
 particular power rating indicated by the power field. Order these by the
 power field. [3 points]
 
+```js
+db.mtg.aggregate([{$group : { "_id" : { power: "$power",  name : "$name", colors : "$colors"}
+
+                }},
+
+  		{$group : { "_id" : "$_id.power",  
+
+  			"elementals" : {$push : {name : "$_id.name",colors : "$_id.colors"   } 
+
+  		}}}, 
+
+                 {$sort: {"_id":-1}}
+
+                ])
+```
+
 3) Write the command to create an index on your collection first by color
 descending then by name. [1 points]
 
+```js
+db.mtg.ensureIndex({"colors":-1, "name":1})
+```
+
 4) Write a query to return the first three cards (sorted by name) with either
 red or green in their color array, whose names begin with “Z”. [2 points]
+
+```js
+//card names only
+
+db.mtg.find({colors : {$in :  ["Red", "Green"]}, name : { $regex : "^Z"}}, {name :1, _id:0 }).sort({name : 1}).limit(3)
+
+//or
+
+//complete card info
+
+db.mtg.find({colors : {$in :  ["Red", "Green"]}, name : { $regex : "^Z"}}).sort({name : 1}).limit(3)
+```
 
 5) Write a query that first filters out cards that don’t have both colors and
 subtypes and then computes the number of cards for each possible color
 and subtype combination. Some cards will be counted more than once as
 they can have more than one color or more than one subtype in their
 corresponding arrays [2 points]
+
+```js 
+db.mtg.aggregate([  
+
+         {$match:{ "colors": {$exists:true}, "subtypes": {$exists:true} }},
+
+       {$unwind: "$colors"}, {$unwind: "$subtypes"},
+
+       {$group : {"_id" : {$concat: ["$colors","-","$subtypes"]},  
+
+  						         num_cards: {$sum : 1}
+
+  						         }}])
+```
 
 # C. Earth Meteorite Landings [10 points]
 
@@ -348,11 +848,31 @@ db.meteorites.save(theCollection);
 
 });
 
+```js 
+//mass to numeric
+
+db.meteorites.find({}).forEach(function(theCollection) {
+
+theCollection.mass =
+
+parseInt(theCollection.mass);
+
+db.meteorites.save(theCollection);
+
+});   
+```
+
 1) Let’s start off by building a geospatial index. This is a necessary step in
 MongoDB before we can run some of the queries we need. To learn how
 to do this, study the page on 2dsphere Indexes and then write down the
 command needed to create such an index on the geolocation field [2
 points]
+
+```js 
+db.meteorites.createIndex( { geolocation : "2dsphere" } )     
+
+});   
+```
 
 2) It turns out that if you have such an index on your collection, you have
 access to another type of stage in the aggregate() pipeline that we have
@@ -360,13 +880,52 @@ not seen, the $geonear stage. Read the online documentation for this
 stage, and then construct a query that will find the 5 meteorite landings
 that were nearest to Athens, Greece [4 points]
 
+```js 
+db.meteorites.aggregate([
+
+   {
+
+     $geoNear: {
+
+        near: { type: "Point", coordinates: [ 37.9838096 , 23.727538800000048 ] },
+
+        distanceField: "dist.calculated",
+
+        
+
+        includeLocs: "dist.location",
+
+        num: 5,
+
+        spherical: true
+
+     }
+
+   }
+
+])
+
+```
+
 3) Write a query that computes the average mass, the number of meteorites,
 the most recent and the oldest meteorite landing for each value of
 recclass, sorted by recclass, but for only those values of recclass that
 appear in at least 5 meteorites in the collection [2 points]
 
+```js 
+db.meteorites.aggregate([  
+
+{$group: {"_id" : { recclass: "$recclass" }, num:{$sum:1},
+
+avgMass:{$avg:"$mass"}, oldest : { $min: "$year" },  newest : { $max: "$year" }  }}, {
+
+$match: {num:{$gt:5}}}, {$sort: {"_id.recclass":1}}]) 
+```
+
 4) Write a statement that will update all documents in the collection so that
 if their mass exceeds 10000, they will have acquire an extra field called
 “big_one” with the value true [2 points]
 
-
+```js 
+db.meteorites.update({"mass" :{ $gt : 10000 } },{$set : {"big_one":true}})
+```
